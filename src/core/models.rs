@@ -12,7 +12,7 @@ pub struct User {
     pub id: Uuid,
     pub first_name: String,
     pub last_name: String,
-    pub banned_at: Option<NaiveDateTime>,
+    pub email_address: String,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
     pub deleted_at: Option<NaiveDateTime>,
