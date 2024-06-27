@@ -111,3 +111,45 @@ impl UserQuery {
         Ok(Some(user))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{config::get_config, core::repo::connect_database, server::graph::create_schema};
+    use async_graphql::{Request, Variables};
+    use serde_json::json;
+
+    // TODO: Add a shared test setup, maybe with a database transaction.
+
+    #[tokio::test]
+    async fn test_user() {
+        let config = get_config();
+        let database = connect_database(&config.database_url);
+        let schema = create_schema(database);
+        let query = "
+        query {
+            user {
+                id
+                firstName
+                lastName
+            }
+        }
+        ";
+        let variables = json!({"id": "123"});
+        let response = schema
+            .execute(Request::new(query).variables(Variables::from_json(variables)))
+            .await;
+
+        assert_eq!(
+            response.data.into_json().unwrap(),
+            json!({
+                "user": {
+                    "id": "123",
+                    "firstName": "Martin",
+                    "lastName": "Nijboer",
+                }
+            })
+        );
+        assert!(response.errors.is_empty());
+        assert!(response.extensions.is_empty());
+    }
+}
