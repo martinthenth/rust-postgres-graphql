@@ -18,6 +18,7 @@ use tokio::net::TcpListener;
 use tracing::info;
 
 mod graph;
+mod resolvers;
 
 /// Start the web server
 pub async fn start_server(endpoint_url: &String, database: Pool) {
