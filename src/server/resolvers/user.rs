@@ -1,10 +1,18 @@
 use crate::core::users::create_user;
+use crate::core::users::get_user;
+use crate::core::users::CreateUserAttrs;
 use async_graphql::Context;
 use async_graphql::InputObject;
 use async_graphql::Object;
 use async_graphql::Result;
 use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
+use std::str::FromStr;
+
+// TODO: These are not resolver functions but the GraphQL schema!
+// That means, I can move the resolvers to their own function maybe; and test those separately.
+
+// TODO: Combine `SimpleObject` with `complex()`
 
 struct User {
     id: ID,
@@ -65,18 +73,24 @@ impl UserMutation {
         // TODO: Properly handle errors with `Result`
         let conn = database.get().await.unwrap();
         // TODO: Get params from graphql
+        // TODO: Remove blanket unwrap for a better solution
+        // if let Some(user_input) = input {
+        //   thing
+        // } else {
+        //   return Err(/* appropriate error */);
+        // }
+        let attrs = input.unwrap();
+        let params = CreateUserAttrs {
+            first_name: attrs.first_name.unwrap(),
+            last_name: attrs.last_name.unwrap(),
+            email_address: attrs.email_address.unwrap(),
+        };
         let user = conn
-            .interact(|conn| {
-                create_user(
-                    conn,
-                    "Martin".to_string(),
-                    "Nijboer".to_string(),
-                    "martin@example.com".to_string(),
-                )
-            })
+            .interact(|conn| create_user(conn, params))
             .await
             .unwrap();
-        let user = User {
+
+        Ok(Some(User {
             id: ID::from("123"),
             first_name: user.first_name,
             last_name: user.last_name,
@@ -85,9 +99,7 @@ impl UserMutation {
             updated_at: user.updated_at.to_string(),
             // TODO: If not `None`, then to ISO string
             deleted_at: None,
-        };
-
-        Ok(Some(user))
+        }))
     }
 }
 
@@ -97,18 +109,27 @@ pub struct UserQuery;
 #[Object]
 impl UserQuery {
     /// Get a user.
-    async fn user(&self, _ctx: &Context<'_>, id: Option<ID>) -> Result<Option<User>> {
-        let user = User {
-            id: async_graphql::ID::from("123"),
-            first_name: String::from("Martin"),
-            last_name: String::from("Nijboer"),
-            email_address: String::from("martin@example.com"),
-            created_at: String::from("time"),
-            updated_at: String::from("time"),
-            deleted_at: None,
-        };
+    async fn user(&self, ctx: &Context<'_>, id: Option<ID>) -> Result<Option<User>> {
+        // TODO: Validate input parameters
+        // TODO: Rename `database` to `pool` or something
+        let database = ctx.data::<Pool>().unwrap();
+        // TODO: Properly handle errors with `Result`
+        let conn = database.get().await.unwrap();
+        // TODO: Remove blanket unwrap for a better solution
+        // TODO: Add `UUID` scalar type
+        let id = uuid::Uuid::from_str(&id.unwrap()).unwrap();
+        let user = conn.interact(|conn| get_user(conn, id)).await.unwrap();
 
-        Ok(Some(user))
+        Ok(Some(User {
+            id: ID::from("123"),
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email_address: user.email_address,
+            created_at: user.created_at.to_string(),
+            updated_at: user.updated_at.to_string(),
+            // TODO: If not `None`, then to ISO string
+            deleted_at: None,
+        }))
     }
 }
 
@@ -121,7 +142,7 @@ mod tests {
     // TODO: Add a shared test setup, maybe with a database transaction.
 
     #[tokio::test]
-    async fn test_user() {
+    async fn test_user_success() {
         let config = get_config();
         let database = connect_database(&config.database_url);
         let schema = create_schema(database);
@@ -151,5 +172,20 @@ mod tests {
         );
         assert!(response.errors.is_empty());
         assert!(response.extensions.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_user_missing_id() {
+        assert_eq!(true, true);
+    }
+
+    #[tokio::test]
+    async fn test_create_user_success() {
+        assert_eq!(true, true)
+    }
+
+    #[tokio::test]
+    async fn test_create_user_missing_input() {
+        assert_eq!(true, true)
     }
 }
