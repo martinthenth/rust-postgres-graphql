@@ -27,12 +27,12 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
 
     match user {
         Some(user) => Ok(Some(User {
-            id: ID::from(user.id),
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email_address: user.email_address,
-            created_at: user.created_at.to_string(),
-            updated_at: user.updated_at.to_string(),
+            id: Some(ID::from(user.id)),
+            first_name: Some(user.first_name),
+            last_name: Some(user.last_name),
+            email_address: Some(user.email_address),
+            created_at: Some(user.created_at.to_string()),
+            updated_at: Some(user.updated_at.to_string()),
             // TODO: If not `None`, then to ISO string
             deleted_at: None,
         })),
@@ -63,12 +63,12 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
         .unwrap();
 
     Ok(Some(User {
-        id: ID::from(user.id),
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email_address: user.email_address,
-        created_at: user.created_at.to_string(),
-        updated_at: user.updated_at.to_string(),
+        id: Some(ID::from(user.id)),
+        first_name: Some(user.first_name),
+        last_name: Some(user.last_name),
+        email_address: Some(user.email_address),
+        created_at: Some(user.created_at.to_string()),
+        updated_at: Some(user.updated_at.to_string()),
         // TODO: If not `None`, then to ISO string
         deleted_at: None,
     }))
@@ -108,13 +108,13 @@ mod tests {
         assert_eq!(
             result,
             Ok(Some(User {
-                id: ID::from(user.id),
-                first_name: user.first_name,
-                last_name: user.last_name,
-                email_address: user.email_address,
+                id: Some(ID::from(user.id)),
+                first_name: Some(user.first_name),
+                last_name: Some(user.last_name),
+                email_address: Some(user.email_address),
                 // TODO: This is not an ISO8601 string
-                created_at: user.created_at.to_string(),
-                updated_at: user.updated_at.to_string(),
+                created_at: Some(user.created_at.to_string()),
+                updated_at: Some(user.updated_at.to_string()),
                 // TODO: If not `None`, then to ISO string
                 deleted_at: None,
             }))
@@ -160,6 +160,7 @@ mod tests {
                 id
                 firstName
                 lastName
+                fullName
                 emailAddress
                 createdAt
                 updatedAt
@@ -179,6 +180,7 @@ mod tests {
                     "id": user.id.to_string(),
                     "firstName": user.first_name.to_string(),
                     "lastName": user.last_name.to_string(),
+                    "fullName": format!("{} {}", user.first_name, user.last_name),
                     "emailAddress": user.email_address.to_string(),
                     // TODO: This is not an ISO8601 string
                     "createdAt": user.created_at.to_string(),

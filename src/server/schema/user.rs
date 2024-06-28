@@ -1,45 +1,33 @@
 use crate::server::resolvers;
+use async_graphql::ComplexObject;
 use async_graphql::Context;
 use async_graphql::InputObject;
 use async_graphql::Object;
 use async_graphql::Result;
+use async_graphql::SimpleObject;
 use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
 
-// TODO: Combine `SimpleObject` with `complex()`
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, SimpleObject)]
+#[graphql(complex)]
 pub struct User {
-    pub id: ID,
-    pub first_name: String,
-    pub last_name: String,
-    pub email_address: String,
-    pub created_at: String,
-    pub updated_at: String,
+    pub id: Option<ID>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub email_address: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
     pub deleted_at: Option<String>,
 }
 
-#[Object]
+#[ComplexObject]
 impl User {
-    async fn id(&self) -> Result<Option<&String>> {
-        Ok(Some(&self.id))
-    }
-    async fn first_name(&self) -> Result<Option<&String>> {
-        Ok(Some(&self.first_name))
-    }
-    async fn last_name(&self) -> Result<Option<&String>> {
-        Ok(Some(&self.last_name))
-    }
-    async fn email_address(&self) -> Result<Option<&String>> {
-        Ok(Some(&self.email_address))
-    }
-    async fn created_at(&self) -> Result<Option<&String>> {
-        Ok(Some(&self.created_at))
-    }
-    async fn updated_at(&self) -> Result<Option<&String>> {
-        Ok(Some(&self.updated_at))
-    }
-    async fn deleted_at(&self) -> Result<&Option<String>> {
-        Ok(&self.deleted_at)
+    async fn full_name(&self) -> Result<Option<String>> {
+        if let (Some(first_name), Some(last_name)) = (&self.first_name, &self.last_name) {
+            Ok(Some(format!("{} {}", first_name, last_name)))
+        } else {
+            Ok(None)
+        }
     }
 }
 
