@@ -1,7 +1,9 @@
 use crate::core::users;
+use crate::server::error::ResolverError;
 use crate::server::schema::user_schema::User;
 use crate::server::schema::user_schema::UserInput;
 use async_graphql::Error;
+use async_graphql::ErrorExtensions;
 use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
 use std::str::FromStr;
@@ -23,9 +25,12 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Return a graphql error
     let option = match result {
         Ok(Ok(option)) => option,
-        Ok(Err(_)) => return Ok(None),
-        Err(_) => return Ok(None),
+        Ok(Err(_)) => return Err(ResolverError::InternalServer.extend()),
+        Err(_) => return Err(ResolverError::InternalServer.extend()),
     };
+
+    // Err(async_graphql::Error::new("Internal server error")
+    //     .extend_with(|_, e| e.set("code", "INTERNAL_SERVER_ERROR")))
 
     match option {
         Some(user) => Ok(Some(User {

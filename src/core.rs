@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 mod models;
 pub mod repo;
 mod schema;
