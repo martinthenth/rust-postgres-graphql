@@ -17,20 +17,27 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // let id = uuid::Uuid::from_str(&id.unwrap()).unwrap();
     // TODO: Clearly a hacked together solution
     let user = conn
-        .interact(|conn| users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap()))
+        .interact(|conn| {
+            let result = users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap());
+
+            result.unwrap()
+        })
         .await
         .unwrap();
 
-    Ok(Some(User {
-        id: ID::from(user.id),
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email_address: user.email_address,
-        created_at: user.created_at.to_string(),
-        updated_at: user.updated_at.to_string(),
-        // TODO: If not `None`, then to ISO string
-        deleted_at: None,
-    }))
+    match user {
+        Some(user) => Ok(Some(User {
+            id: ID::from(user.id),
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email_address: user.email_address,
+            created_at: user.created_at.to_string(),
+            updated_at: user.updated_at.to_string(),
+            // TODO: If not `None`, then to ISO string
+            deleted_at: None,
+        })),
+        None => Ok(None),
+    }
 }
 
 pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option<User>, Error> {
@@ -99,8 +106,8 @@ mod tests {
                 .await;
 
         assert_eq!(
-            result.unwrap(),
-            Some(User {
+            result,
+            Ok(Some(User {
                 id: ID::from(user.id),
                 first_name: user.first_name,
                 last_name: user.last_name,
@@ -110,8 +117,26 @@ mod tests {
                 updated_at: user.updated_at.to_string(),
                 // TODO: If not `None`, then to ISO string
                 deleted_at: None,
-            })
+            }))
         )
+    }
+
+    #[tokio::test]
+    async fn test_user_not_found() {
+        let config = get_config();
+        let pool = connect_database(&config.database_url);
+        let result = crate::server::resolvers::user::user(
+            &pool,
+            Some(async_graphql::ID::from(Uuid::now_v7())),
+        )
+        .await;
+
+        assert_eq!(result, Ok(None));
+    }
+
+    #[tokio::test]
+    async fn test_user_missing_id() {
+        assert_eq!(true, true);
     }
 
     #[tokio::test]
@@ -165,11 +190,6 @@ mod tests {
         );
         assert!(response.errors.is_empty());
         assert!(response.extensions.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_user_missing_id() {
-        assert_eq!(true, true);
     }
 
     #[tokio::test]

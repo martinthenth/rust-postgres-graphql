@@ -1,7 +1,10 @@
+use std::io::Error;
+
 use crate::core::models::User;
 use crate::core::schema::users;
 use crate::core::schema::users::dsl::*;
 use chrono::Utc;
+use diesel::prelude::*;
 use diesel::PgConnection;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
@@ -15,13 +18,19 @@ pub struct CreateUserAttrs {
 }
 
 /// Fetch the user.
-pub fn fetch_user(conn: &mut PgConnection, user_id: Uuid) -> User {
+pub fn fetch_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Option<User>, Error> {
     // TODO: Handle all the errors
-    users
+    let result = users
         .find(user_id)
         .select(User::as_select())
         .first(conn)
-        .unwrap()
+        .optional();
+
+    match result {
+        Ok(Some(user)) => Ok(Some(user)),
+        Ok(None) => Ok(None),
+        Err(_) => Ok(None),
+    }
 }
 
 /// Create a user.
@@ -67,7 +76,7 @@ mod tests {
         );
         let result = fetch_user(&mut conn, user.id);
 
-        assert_eq!(result, user)
+        assert_eq!(result.unwrap(), Some(user))
     }
 
     #[test]
