@@ -5,7 +5,7 @@ use diesel::prelude::Queryable;
 use diesel::prelude::Selectable;
 use uuid::Uuid;
 
-#[derive(Debug, Insertable, Queryable, Selectable)]
+#[derive(Debug, Insertable, PartialEq, Queryable, Selectable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {

@@ -7,6 +7,7 @@ use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
 
 // TODO: Combine `SimpleObject` with `complex()`
+#[derive(Debug, PartialEq)]
 pub struct User {
     pub id: ID,
     pub first_name: String,

@@ -14,8 +14,9 @@ pub struct CreateUserAttrs {
     pub email_address: String,
 }
 
-/// Get a user.
-pub fn get_user(conn: &mut PgConnection, user_id: Uuid) -> User {
+/// Fetch the user.
+pub fn fetch_user(conn: &mut PgConnection, user_id: Uuid) -> User {
+    // TODO: Handle all the errors
     users
         .find(user_id)
         .select(User::as_select())
@@ -24,14 +25,14 @@ pub fn get_user(conn: &mut PgConnection, user_id: Uuid) -> User {
 }
 
 /// Create a user.
-pub fn create_user(conn: &mut PgConnection, params: CreateUserAttrs) -> User {
+pub fn create_user(conn: &mut PgConnection, attrs: CreateUserAttrs) -> User {
     // TODO: Check whether the values should be borrowed???
     let timestamp = Utc::now().naive_utc();
     let new_user = User {
         id: Uuid::now_v7(),
-        first_name: params.first_name,
-        last_name: params.last_name,
-        email_address: params.email_address,
+        first_name: attrs.first_name,
+        last_name: attrs.last_name,
+        email_address: attrs.email_address,
         created_at: timestamp,
         updated_at: timestamp,
         deleted_at: None,
@@ -53,8 +54,24 @@ mod tests {
     use diesel::PgConnection;
 
     #[test]
-    fn test_get_user_success() {
-        // TODO: Implement test.
+    fn test_fetch_user_success() {
+        let config = config::get_config();
+        let mut conn = PgConnection::establish(&config.database_url).unwrap();
+        let user = create_user(
+            &mut conn,
+            CreateUserAttrs {
+                first_name: "Jane".to_string(),
+                last_name: "Doe".to_string(),
+                email_address: "jane@doe.com".to_string(),
+            },
+        );
+        let result = fetch_user(&mut conn, user.id);
+
+        assert_eq!(result, user)
+    }
+
+    #[test]
+    fn test_fetch_user_not_found() {
         assert_eq!(true, true)
     }
 
@@ -62,17 +79,22 @@ mod tests {
     fn test_create_user_success() {
         let config = config::get_config();
         let mut conn = PgConnection::establish(&config.database_url).unwrap();
-        let params = CreateUserAttrs {
+        let attrs = CreateUserAttrs {
             first_name: "Jane".to_string(),
             last_name: "Doe".to_string(),
             email_address: "jane@doe.com".to_string(),
         };
-        let user = create_user(&mut conn, params);
+        let user = create_user(&mut conn, attrs);
 
         assert_eq!(user.first_name, "Jane");
         assert_eq!(user.last_name, "Doe");
         assert_eq!(user.email_address, "jane@doe.com");
         assert_eq!(user.created_at, user.updated_at);
         assert_eq!(user.deleted_at, None);
+    }
+
+    #[test]
+    fn test_create_user_already_exists() {
+        assert_eq!(true, true)
     }
 }

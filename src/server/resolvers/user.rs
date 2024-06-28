@@ -5,6 +5,7 @@ use crate::server::schema::user::UserInput;
 use async_graphql::Error;
 use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
+use std::str::FromStr;
 use uuid::Uuid;
 
 pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
@@ -14,13 +15,14 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Remove blanket unwrap for a better solution
     // TODO: Add `UUID` scalar type
     // let id = uuid::Uuid::from_str(&id.unwrap()).unwrap();
+    // TODO: Clearly a hacked together solution
     let user = conn
-        .interact(|conn| users::get_user(conn, Uuid::now_v7()))
+        .interact(|conn| users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap()))
         .await
         .unwrap();
 
     Ok(Some(User {
-        id: ID::from("123"),
+        id: ID::from(user.id),
         first_name: user.first_name,
         last_name: user.last_name,
         email_address: user.email_address,
@@ -43,18 +45,18 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
     //   return Err(/* appropriate error */);
     // }
     let attrs = input.unwrap();
-    let params = CreateUserAttrs {
+    let attrs = CreateUserAttrs {
         first_name: attrs.first_name.unwrap(),
         last_name: attrs.last_name.unwrap(),
         email_address: attrs.email_address.unwrap(),
     };
     let user = conn
-        .interact(|conn| users::create_user(conn, params))
+        .interact(|conn| users::create_user(conn, attrs))
         .await
         .unwrap();
 
     Ok(Some(User {
-        id: ID::from("123"),
+        id: ID::from(user.id),
         first_name: user.first_name,
         last_name: user.last_name,
         email_address: user.email_address,
@@ -67,34 +69,80 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::config;
+    use crate::core::users;
     use crate::{config::get_config, core::repo::connect_database, server::schema::create_schema};
     use async_graphql::{Request, Variables};
+    use diesel::Connection;
+    use diesel::PgConnection;
     use serde_json::json;
 
     // TODO: Add a shared test setup, maybe with a database transaction.
 
-    // TODO: Test the resolver, not the schema
-
     #[tokio::test]
     async fn test_user_success() {
-        assert_eq!(true, true)
+        let config = config::get_config();
+        let mut conn = PgConnection::establish(&config.database_url).unwrap();
+        let user = users::create_user(
+            &mut conn,
+            users::CreateUserAttrs {
+                first_name: "Jane".to_string(),
+                last_name: "Doe".to_string(),
+                email_address: "jane@doe.com".to_string(),
+            },
+        );
+        let config = get_config();
+        let pool = connect_database(&config.database_url);
+        let result =
+            crate::server::resolvers::user::user(&pool, Some(async_graphql::ID::from(user.id)))
+                .await;
+
+        assert_eq!(
+            result.unwrap(),
+            Some(User {
+                id: ID::from(user.id),
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email_address: user.email_address,
+                // TODO: This is not an ISO8601 string
+                created_at: user.created_at.to_string(),
+                updated_at: user.updated_at.to_string(),
+                // TODO: If not `None`, then to ISO string
+                deleted_at: None,
+            })
+        )
     }
 
     #[tokio::test]
     async fn test_user_integration() {
+        let config = config::get_config();
+        let mut conn = PgConnection::establish(&config.database_url).unwrap();
+        let user = users::create_user(
+            &mut conn,
+            users::CreateUserAttrs {
+                first_name: "Jane".to_string(),
+                last_name: "Doe".to_string(),
+                email_address: "jane@doe.com".to_string(),
+            },
+        );
         let config = get_config();
         let pool = connect_database(&config.database_url);
         let schema = create_schema(pool);
         let query = "
-        query {
-            user {
+        query User($id: ID) {
+            user(id: $id) {
                 id
                 firstName
                 lastName
+                emailAddress
+                createdAt
+                updatedAt
+                deletedAt
             }
         }
         ";
-        let variables = json!({"id": "123"});
+        let variables = json!({"id": user.id.to_string()});
         let response = schema
             .execute(Request::new(query).variables(Variables::from_json(variables)))
             .await;
@@ -103,9 +151,15 @@ mod tests {
             response.data.into_json().unwrap(),
             json!({
                 "user": {
-                    "id": "123",
-                    "firstName": "Martin",
-                    "lastName": "Nijboer",
+                    "id": user.id.to_string(),
+                    "firstName": user.first_name.to_string(),
+                    "lastName": user.last_name.to_string(),
+                    "emailAddress": user.email_address.to_string(),
+                    // TODO: This is not an ISO8601 string
+                    "createdAt": user.created_at.to_string(),
+                    "updatedAt": user.updated_at.to_string(),
+                    // TODO: The `Null` value should be imported
+                    "deletedAt": async_graphql::Value::Null
                 }
             })
         );
