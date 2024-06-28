@@ -1,4 +1,4 @@
-use crate::server::resolvers;
+use crate::server::resolvers::user_resolver;
 use async_graphql::ComplexObject;
 use async_graphql::Context;
 use async_graphql::InputObject;
@@ -49,7 +49,7 @@ impl UserMutation {
         ctx: &Context<'_>,
         input: Option<UserInput>,
     ) -> Result<Option<User>> {
-        resolvers::user::create_user(ctx.data::<Pool>().unwrap(), input).await
+        user_resolver::create_user(ctx.data::<Pool>().unwrap(), input).await
     }
 }
 
@@ -60,6 +60,6 @@ pub struct UserQuery;
 impl UserQuery {
     /// Get a user.
     async fn user(&self, ctx: &Context<'_>, id: Option<ID>) -> Result<Option<User>> {
-        resolvers::user::user(ctx.data::<Pool>().unwrap(), id).await
+        user_resolver::user(ctx.data::<Pool>().unwrap(), id).await
     }
 }

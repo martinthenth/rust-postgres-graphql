@@ -1,14 +1,11 @@
 use crate::core::users;
-use crate::core::users::CreateUserAttrs;
-use crate::server::schema::user::User;
-use crate::server::schema::user::UserInput;
+use crate::server::schema::user_schema::User;
+use crate::server::schema::user_schema::UserInput;
 use async_graphql::Error;
 use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
 use std::str::FromStr;
 use uuid::Uuid;
-
-// TODO: Rename module to `user_resolver` and schema to `user_schema`
 
 pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
@@ -57,7 +54,7 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
     //   return Err(/* appropriate error */);
     // }
     let attrs = input.unwrap();
-    let attrs = CreateUserAttrs {
+    let attrs = users::CreateUserAttrs {
         first_name: attrs.first_name.unwrap(),
         last_name: attrs.last_name.unwrap(),
         email_address: attrs.email_address.unwrap(),
@@ -106,9 +103,11 @@ mod tests {
         );
         let config = get_config();
         let pool = connect_database(&config.database_url);
-        let result =
-            crate::server::resolvers::user::user(&pool, Some(async_graphql::ID::from(user.id)))
-                .await;
+        let result = crate::server::resolvers::user_resolver::user(
+            &pool,
+            Some(async_graphql::ID::from(user.id)),
+        )
+        .await;
 
         assert_eq!(
             result,
@@ -130,7 +129,7 @@ mod tests {
     async fn test_user_not_found() {
         let config = get_config();
         let pool = connect_database(&config.database_url);
-        let result = crate::server::resolvers::user::user(
+        let result = crate::server::resolvers::user_resolver::user(
             &pool,
             Some(async_graphql::ID::from(Uuid::now_v7())),
         )

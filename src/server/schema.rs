@@ -1,11 +1,11 @@
-use crate::server::schema::user::UserMutation;
-use crate::server::schema::user::UserQuery;
+use crate::server::schema::user_schema::UserMutation;
+use crate::server::schema::user_schema::UserQuery;
 use async_graphql::EmptySubscription;
 use async_graphql::MergedObject;
 use async_graphql::Schema;
 use deadpool_diesel::postgres::Pool;
 
-pub mod user;
+pub mod user_schema;
 
 /// The GraphQL schema type.
 pub type GraphSchema = Schema<Query, Mutation, EmptySubscription>;
