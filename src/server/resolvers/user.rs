@@ -8,6 +8,8 @@ use deadpool_diesel::postgres::Pool;
 use std::str::FromStr;
 use uuid::Uuid;
 
+// TODO: Rename module to `user_resolver` and schema to `user_schema`
+
 pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
     // TODO: Properly handle errors with `Result`
@@ -16,16 +18,19 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Add `UUID` scalar type
     // let id = uuid::Uuid::from_str(&id.unwrap()).unwrap();
     // TODO: Clearly a hacked together solution
-    let user = conn
-        .interact(|conn| {
-            let result = users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap());
+    let result = conn
+        .interact(|conn| users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap()))
+        .await;
 
-            result.unwrap()
-        })
-        .await
-        .unwrap();
+    // TODO: Probably not the nicest way to do it; handle errors explicitly
+    // TODO: Return a graphql error
+    let option = match result {
+        Ok(Ok(option)) => option,
+        Ok(Err(_)) => return Ok(None),
+        Err(_) => return Ok(None),
+    };
 
-    match user {
+    match option {
         Some(user) => Ok(Some(User {
             id: Some(ID::from(user.id)),
             first_name: Some(user.first_name),
