@@ -17,7 +17,6 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::info;
 
-mod error;
 mod resolvers;
 mod schema;
 
