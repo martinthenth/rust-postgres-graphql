@@ -88,6 +88,7 @@ dependencies = [
  "static_assertions_next",
  "tempfile",
  "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -1698,6 +1699,7 @@ checksum = "a183cf7feeba97b4dd1c0d46788634f6221d87fa961b305bed08c851829efcc0"
 dependencies = [
  "atomic",
  "getrandom",
+ "serde",
 ]
 
 [[package]]

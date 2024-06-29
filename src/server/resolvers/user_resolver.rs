@@ -3,18 +3,14 @@ use crate::server::resolvers::errors::internal_server;
 use crate::server::schema::user_schema::User;
 use crate::server::schema::user_schema::UserInput;
 use async_graphql::Error;
-use async_graphql::ID;
 use deadpool_diesel::postgres::Pool;
-use std::str::FromStr;
 use uuid::Uuid;
 
-pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
+pub async fn user(pool: &Pool, id: Option<Uuid>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
     let conn = pool.get().await.unwrap();
-    // TODO: Add `UUID` scalar type
-    // TODO: Clearly a hacked together solution
     let result = conn
-        .interact(|conn| users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap()))
+        .interact(move |conn| users::fetch_user(conn, id.unwrap()))
         .await;
 
     // TODO: Handle specific database errors, like `NotFound`
@@ -27,7 +23,7 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
 
     match option {
         Some(user) => Ok(Some(User {
-            id: Some(ID::from(user.id)),
+            id: Some(user.id),
             first_name: Some(user.first_name),
             last_name: Some(user.last_name),
             email_address: Some(user.email_address),
@@ -61,7 +57,7 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
 
     match option {
         Some(user) => Ok(Some(User {
-            id: Some(ID::from(user.id)),
+            id: Some(user.id),
             first_name: Some(user.first_name),
             last_name: Some(user.last_name),
             email_address: Some(user.email_address),
@@ -90,12 +86,12 @@ mod tests {
         let user = factory::create_user();
         let config = config::get_config();
         let pool = repo::connect_database(&config.database_url);
-        let result = user_resolver::user(&pool, Some(async_graphql::ID::from(user.id))).await;
+        let result = user_resolver::user(&pool, Some(user.id)).await;
 
         assert_eq!(
             result,
             Ok(Some(User {
-                id: Some(ID::from(user.id)),
+                id: Some(user.id),
                 first_name: Some(user.first_name),
                 last_name: Some(user.last_name),
                 email_address: Some(user.email_address),
@@ -112,8 +108,8 @@ mod tests {
     async fn test_user_not_found() {
         let config = config::get_config();
         let pool = repo::connect_database(&config.database_url);
-        let result =
-            user_resolver::user(&pool, Some(async_graphql::ID::from(Uuid::now_v7()))).await;
+        let id = Uuid::now_v7();
+        let result = user_resolver::user(&pool, Some(id)).await;
 
         assert_eq!(result, Ok(None));
     }
