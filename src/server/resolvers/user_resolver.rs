@@ -27,8 +27,8 @@ pub async fn user(pool: &Pool, id: Option<Uuid>) -> Result<Option<User>, Error> 
             first_name: Some(user.first_name),
             last_name: Some(user.last_name),
             email_address: Some(user.email_address),
-            created_at: Some(user.created_at.to_string()),
-            updated_at: Some(user.updated_at.to_string()),
+            created_at: Some(user.created_at.and_utc()),
+            updated_at: Some(user.updated_at.and_utc()),
             // TODO: If not `None`, then to ISO string
             deleted_at: None,
         })),
@@ -61,8 +61,8 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
             first_name: Some(user.first_name),
             last_name: Some(user.last_name),
             email_address: Some(user.email_address),
-            created_at: Some(user.created_at.to_string()),
-            updated_at: Some(user.updated_at.to_string()),
+            created_at: Some(user.created_at.and_utc()),
+            updated_at: Some(user.updated_at.and_utc()),
             // TODO: If not `None`, then to ISO string
             deleted_at: None,
         })),
@@ -95,9 +95,8 @@ mod tests {
                 first_name: Some(user.first_name),
                 last_name: Some(user.last_name),
                 email_address: Some(user.email_address),
-                // TODO: This is not an ISO8601 string
-                created_at: Some(user.created_at.to_string()),
-                updated_at: Some(user.updated_at.to_string()),
+                created_at: Some(user.created_at.and_utc()),
+                updated_at: Some(user.updated_at.and_utc()),
                 // TODO: If not `None`, then to ISO string
                 deleted_at: None,
             }))
@@ -156,9 +155,8 @@ mod tests {
                     "lastName": user.last_name.to_string(),
                     "fullName": format!("{} {}", user.first_name, user.last_name),
                     "emailAddress": user.email_address.to_string(),
-                    // TODO: This is not an ISO8601 string
-                    "createdAt": user.created_at.to_string(),
-                    "updatedAt": user.updated_at.to_string(),
+                    "createdAt": user.updated_at.and_utc().to_rfc3339(),
+                    "updatedAt": user.updated_at.and_utc().to_rfc3339(),
                     // TODO: The `Null` value should be imported
                     "deletedAt": async_graphql::Value::Null
                 }

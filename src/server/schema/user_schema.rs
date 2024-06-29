@@ -6,6 +6,8 @@ use async_graphql::InputObject;
 use async_graphql::Object;
 use async_graphql::Result;
 use async_graphql::SimpleObject;
+use chrono::DateTime;
+use chrono::Utc;
 use deadpool_diesel::postgres::Pool;
 use uuid::Uuid;
 
@@ -16,9 +18,9 @@ pub struct User {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub email_address: Option<String>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-    pub deleted_at: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[ComplexObject]

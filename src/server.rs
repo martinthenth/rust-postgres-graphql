@@ -18,7 +18,6 @@ use tokio::net::TcpListener;
 use tracing::info;
 
 mod resolvers;
-mod scalars;
 mod schema;
 
 /// Start the web server
