@@ -1,5 +1,3 @@
-use std::io::Error;
-
 use crate::core::models::User;
 use crate::core::schema::users;
 use crate::core::schema::users::dsl::*;
@@ -9,6 +7,7 @@ use diesel::PgConnection;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
 use diesel::SelectableHelper;
+use std::io::Error;
 use uuid::Uuid;
 
 pub struct CreateUserAttrs {
@@ -34,10 +33,10 @@ pub fn fetch_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Option<User>
 }
 
 /// Create a user.
-pub fn create_user(conn: &mut PgConnection, attrs: CreateUserAttrs) -> User {
+pub fn create_user(conn: &mut PgConnection, attrs: CreateUserAttrs) -> Result<Option<User>, Error> {
     // TODO: Check whether the values should be borrowed???
     let timestamp = Utc::now().naive_utc();
-    let new_user = User {
+    let changes = User {
         id: Uuid::now_v7(),
         first_name: attrs.first_name,
         last_name: attrs.last_name,
@@ -48,11 +47,17 @@ pub fn create_user(conn: &mut PgConnection, attrs: CreateUserAttrs) -> User {
     };
 
     // TODO: Handle all the errors
-    diesel::insert_into(users::table)
-        .values(&new_user)
+    let result = diesel::insert_into(users::table)
+        .values(&changes)
         .returning(User::as_returning())
         .get_result(conn)
-        .expect("Error saving new post")
+        .optional();
+
+    match result {
+        Ok(Some(user)) => Ok(Some(user)),
+        Ok(None) => Ok(None),
+        Err(_) => Ok(None),
+    }
 }
 
 #[cfg(test)]
@@ -69,19 +74,26 @@ mod tests {
         let user = create_user(
             &mut conn,
             CreateUserAttrs {
-                first_name: "Jane".to_string(),
-                last_name: "Doe".to_string(),
-                email_address: "jane@doe.com".to_string(),
+                first_name: String::from("Jane"),
+                last_name: String::from("Doe"),
+                email_address: String::from("jane@doe.com"),
             },
-        );
-        let result = fetch_user(&mut conn, user.id);
+        )
+        .unwrap()
+        .unwrap();
+        let result = fetch_user(&mut conn, user.id).unwrap();
 
-        assert_eq!(result.unwrap(), Some(user))
+        assert_eq!(result, Some(user))
     }
 
     #[test]
     fn test_fetch_user_not_found() {
-        assert_eq!(true, true)
+        let config = config::get_config();
+        let mut conn = PgConnection::establish(&config.database_url).unwrap();
+        let user_id = Uuid::now_v7();
+        let result = fetch_user(&mut conn, user_id).unwrap();
+
+        assert_eq!(result, None)
     }
 
     #[test]
@@ -89,17 +101,20 @@ mod tests {
         let config = config::get_config();
         let mut conn = PgConnection::establish(&config.database_url).unwrap();
         let attrs = CreateUserAttrs {
-            first_name: "Jane".to_string(),
-            last_name: "Doe".to_string(),
-            email_address: "jane@doe.com".to_string(),
+            first_name: String::from("Jane"),
+            last_name: String::from("Doe"),
+            email_address: String::from("jane@doe.com"),
         };
-        let user = create_user(&mut conn, attrs);
-
-        assert_eq!(user.first_name, "Jane");
-        assert_eq!(user.last_name, "Doe");
-        assert_eq!(user.email_address, "jane@doe.com");
-        assert_eq!(user.created_at, user.updated_at);
-        assert_eq!(user.deleted_at, None);
+        // TODO: Maybe there's a better way to write this test?
+        if let Some(user) = create_user(&mut conn, attrs).unwrap() {
+            assert_eq!(user.first_name, "Jane");
+            assert_eq!(user.last_name, "Doe");
+            assert_eq!(user.email_address, "jane@doe.com");
+            assert_eq!(user.created_at, user.updated_at);
+            assert_eq!(user.deleted_at, None);
+        } else {
+            assert!(false)
+        }
     }
 
     #[test]

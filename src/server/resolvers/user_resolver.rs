@@ -12,16 +12,14 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
     // TODO: Properly handle errors with `Result`
     let conn = pool.get().await.unwrap();
-    // TODO: Remove blanket unwrap for a better solution
     // TODO: Add `UUID` scalar type
-    // let id = uuid::Uuid::from_str(&id.unwrap()).unwrap();
     // TODO: Clearly a hacked together solution
     let result = conn
         .interact(|conn| users::fetch_user(conn, Uuid::from_str(id.unwrap().as_str()).unwrap()))
         .await;
 
-    // TODO: Probably not the nicest way to do it; handle errors explicitly
-    // TODO: Return a graphql error
+    // TODO: Handle specific database errors, like `NotFound`
+    // TODO: Write an abstraction (any db error returns internal server error)
     let option = match result {
         Ok(Ok(option)) => option,
         Ok(Err(_)) => return Err(internal_server()),
@@ -48,33 +46,35 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
     // TODO: Properly handle errors with `Result`
     let conn = pool.get().await.unwrap();
     // TODO: Get params from graphql
-    // TODO: Remove blanket unwrap for a better solution
-    // if let Some(user_input) = input {
-    //   thing
-    // } else {
-    //   return Err(/* appropriate error */);
-    // }
     let attrs = input.unwrap();
     let attrs = users::CreateUserAttrs {
         first_name: attrs.first_name.unwrap(),
         last_name: attrs.last_name.unwrap(),
         email_address: attrs.email_address.unwrap(),
     };
-    let user = conn
-        .interact(|conn| users::create_user(conn, attrs))
-        .await
-        .unwrap();
+    let result = conn.interact(|conn| users::create_user(conn, attrs)).await;
 
-    Ok(Some(User {
-        id: Some(ID::from(user.id)),
-        first_name: Some(user.first_name),
-        last_name: Some(user.last_name),
-        email_address: Some(user.email_address),
-        created_at: Some(user.created_at.to_string()),
-        updated_at: Some(user.updated_at.to_string()),
-        // TODO: If not `None`, then to ISO string
-        deleted_at: None,
-    }))
+    // TODO: Handle specific database errors, like `NotFound`
+    // TODO: Write an abstraction (any db error returns internal server error)
+    let option = match result {
+        Ok(Ok(option)) => option,
+        Ok(Err(_)) => return Err(internal_server()),
+        Err(_) => return Err(internal_server()),
+    };
+
+    match option {
+        Some(user) => Ok(Some(User {
+            id: Some(ID::from(user.id)),
+            first_name: Some(user.first_name),
+            last_name: Some(user.last_name),
+            email_address: Some(user.email_address),
+            created_at: Some(user.created_at.to_string()),
+            updated_at: Some(user.updated_at.to_string()),
+            // TODO: If not `None`, then to ISO string
+            deleted_at: None,
+        })),
+        None => Ok(None),
+    }
 }
 
 #[cfg(test)]
@@ -97,11 +97,13 @@ mod tests {
         let user = users::create_user(
             &mut conn,
             users::CreateUserAttrs {
-                first_name: "Jane".to_string(),
-                last_name: "Doe".to_string(),
-                email_address: "jane@doe.com".to_string(),
+                first_name: String::from("Jane"),
+                last_name: String::from("Doe"),
+                email_address: String::from("jane@doe.com"),
             },
-        );
+        )
+        .unwrap()
+        .unwrap();
         let config = get_config();
         let pool = connect_database(&config.database_url);
         let result = crate::server::resolvers::user_resolver::user(
@@ -151,11 +153,13 @@ mod tests {
         let user = users::create_user(
             &mut conn,
             users::CreateUserAttrs {
-                first_name: "Jane".to_string(),
-                last_name: "Doe".to_string(),
-                email_address: "jane@doe.com".to_string(),
+                first_name: String::from("Jane"),
+                last_name: String::from("Doe"),
+                email_address: String::from("jane@doe.com"),
             },
-        );
+        )
+        .unwrap()
+        .unwrap();
         let config = get_config();
         let pool = connect_database(&config.database_url);
         let schema = create_schema(pool);
