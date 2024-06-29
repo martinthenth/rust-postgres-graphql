@@ -97,16 +97,16 @@ mod tests {
             last_name: String::from("Doe"),
             email_address: String::from("jane@doe.com"),
         };
-        // TODO: Maybe there's a better way to write this test?
-        if let Some(user) = create_user(&mut conn, attrs).unwrap() {
+        let result = create_user(&mut conn, attrs).unwrap();
+
+        assert_ne!(result, None);
+        result.map(|user| {
             assert_eq!(user.first_name, "Jane");
             assert_eq!(user.last_name, "Doe");
             assert_eq!(user.email_address, "jane@doe.com");
             assert_eq!(user.created_at, user.updated_at);
             assert_eq!(user.deleted_at, None);
-        } else {
-            assert!(false)
-        }
+        });
     }
 
     #[test]
