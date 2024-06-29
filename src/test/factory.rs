@@ -1,5 +1,6 @@
+use crate::config;
 use crate::core::models::User;
-use crate::{config, core::users};
+use crate::core::users;
 use diesel::Connection;
 use diesel::PgConnection;
 
