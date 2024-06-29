@@ -29,8 +29,7 @@ pub async fn user(pool: &Pool, id: Option<Uuid>) -> Result<Option<User>, Error> 
             email_address: Some(user.email_address),
             created_at: Some(user.created_at.and_utc()),
             updated_at: Some(user.updated_at.and_utc()),
-            // TODO: If not `None`, then to ISO string
-            deleted_at: None,
+            deleted_at: user.deleted_at.map(|datetime| datetime.and_utc()),
         })),
         None => Ok(None),
     }
@@ -63,8 +62,7 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
             email_address: Some(user.email_address),
             created_at: Some(user.created_at.and_utc()),
             updated_at: Some(user.updated_at.and_utc()),
-            // TODO: If not `None`, then to ISO string
-            deleted_at: None,
+            deleted_at: user.deleted_at.map(|datetime| datetime.and_utc()),
         })),
         None => Ok(None),
     }
@@ -78,6 +76,7 @@ mod tests {
     use crate::server::resolvers::user_resolver;
     use crate::server::schema;
     use crate::test::factory;
+    use async_graphql::Value::Null;
 
     // TODO: Add a shared test setup, maybe with a database transaction.
 
@@ -97,8 +96,7 @@ mod tests {
                 email_address: Some(user.email_address),
                 created_at: Some(user.created_at.and_utc()),
                 updated_at: Some(user.updated_at.and_utc()),
-                // TODO: If not `None`, then to ISO string
-                deleted_at: None,
+                deleted_at: user.deleted_at.map(|datetime| datetime.and_utc()),
             }))
         )
     }
@@ -157,8 +155,7 @@ mod tests {
                     "emailAddress": user.email_address.to_string(),
                     "createdAt": user.updated_at.and_utc().to_rfc3339(),
                     "updatedAt": user.updated_at.and_utc().to_rfc3339(),
-                    // TODO: The `Null` value should be imported
-                    "deletedAt": async_graphql::Value::Null
+                    "deletedAt": Null
                 }
             })
         );
