@@ -1,6 +1,6 @@
+use crate::core::models::schema::users;
+use crate::core::models::schema::users::dsl::*;
 use crate::core::models::User;
-use crate::core::schema::users;
-use crate::core::schema::users::dsl::*;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel::PgConnection;
