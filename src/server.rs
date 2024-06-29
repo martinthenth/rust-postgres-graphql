@@ -23,6 +23,12 @@ mod schema;
 /// Start the web server
 pub async fn start_server(endpoint_url: &String, database: Pool) {
     let schema = create_schema(database);
+
+    // TODO: Add a CLI for exporting the graphql schema to `docs/api.gql`
+    println!("{}", &schema.sdl());
+
+    // TODO: Add a CLI for exporting the database schema to `docs/main.sql`
+
     let server = Router::new()
         .route("/", get(graphql_html))
         .route("/graph", post(graphql_json))
