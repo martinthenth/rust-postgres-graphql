@@ -16,8 +16,8 @@ pub struct CreateUserAttrs {
     pub email_address: String,
 }
 
-/// Fetch the user.
-pub fn fetch_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Option<User>, Error> {
+/// Get the user.
+pub fn get_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Option<User>, Error> {
     // TODO: Handle all the errors
     let result = users
         .find(user_id)
@@ -34,7 +34,6 @@ pub fn fetch_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Option<User>
 
 /// Create a user.
 pub fn create_user(conn: &mut PgConnection, attrs: CreateUserAttrs) -> Result<Option<User>, Error> {
-    // TODO: Check whether the values should be borrowed???
     let timestamp = Utc::now().naive_utc();
     let changes = User {
         id: Uuid::now_v7(),
@@ -69,44 +68,45 @@ mod tests {
     use diesel::PgConnection;
 
     #[test]
-    fn test_fetch_user_success() {
-        let user = factory::create_user();
+    fn test_get_user() {
+        let user = factory::insert_user();
         let config = config::get_config();
         let mut conn = PgConnection::establish(&config.database_url).unwrap();
-        let result = fetch_user(&mut conn, user.id).unwrap();
+        let result = get_user(&mut conn, user.id).unwrap();
 
         assert_eq!(result, Some(user))
     }
 
     #[test]
-    fn test_fetch_user_not_found() {
+    fn test_get_user_not_found() {
         let config = config::get_config();
         let mut conn = PgConnection::establish(&config.database_url).unwrap();
         let user_id = Uuid::now_v7();
-        let result = fetch_user(&mut conn, user_id).unwrap();
+        let result = get_user(&mut conn, user_id).unwrap();
 
         assert_eq!(result, None)
     }
 
     #[test]
-    fn test_create_user_success() {
+    fn test_create_user() {
         let config = config::get_config();
         let mut conn = PgConnection::establish(&config.database_url).unwrap();
         let attrs = CreateUserAttrs {
-            first_name: String::from("Jane"),
-            last_name: String::from("Doe"),
-            email_address: String::from("jane@doe.com"),
+            first_name: "Jane".to_string(),
+            last_name: "Doe".to_string(),
+            email_address: "jane@doe.com".to_string(),
         };
         let result = create_user(&mut conn, attrs).unwrap();
 
-        assert_ne!(result, None);
-        result.map(|user| {
+        if let Some(user) = result {
             assert_eq!(user.first_name, "Jane");
             assert_eq!(user.last_name, "Doe");
             assert_eq!(user.email_address, "jane@doe.com");
             assert_eq!(user.created_at, user.updated_at);
             assert_eq!(user.deleted_at, None);
-        });
+        } else {
+            assert_ne!(result, None);
+        }
     }
 
     #[test]

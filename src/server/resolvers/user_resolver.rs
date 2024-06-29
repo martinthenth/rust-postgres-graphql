@@ -10,7 +10,7 @@ pub async fn user(pool: &Pool, id: Option<Uuid>) -> Result<Option<User>, Error> 
     // TODO: Validate input parameters
     let conn = pool.get().await.unwrap();
     let result = conn
-        .interact(move |conn| users::fetch_user(conn, id.unwrap()))
+        .interact(move |conn| users::get_user(conn, id.unwrap()))
         .await;
 
     // TODO: Handle specific database errors, like `NotFound`
@@ -81,15 +81,15 @@ mod tests {
     // TODO: Add a shared test setup, maybe with a database transaction.
 
     #[tokio::test]
-    async fn test_user_success() {
-        let user = factory::create_user();
+    async fn test_user() {
+        let user = factory::insert_user();
         let config = config::get_config();
         let pool = repo::connect_database(&config.database_url);
-        let result = user_resolver::user(&pool, Some(user.id)).await;
+        let result = user_resolver::user(&pool, Some(user.id)).await.unwrap();
 
         assert_eq!(
             result,
-            Ok(Some(User {
+            Some(User {
                 id: Some(user.id),
                 first_name: Some(user.first_name),
                 last_name: Some(user.last_name),
@@ -97,7 +97,7 @@ mod tests {
                 created_at: Some(user.created_at.and_utc()),
                 updated_at: Some(user.updated_at.and_utc()),
                 deleted_at: user.deleted_at.map(|datetime| datetime.and_utc()),
-            }))
+            })
         )
     }
 
@@ -106,9 +106,9 @@ mod tests {
         let config = config::get_config();
         let pool = repo::connect_database(&config.database_url);
         let id = Uuid::now_v7();
-        let result = user_resolver::user(&pool, Some(id)).await;
+        let result = user_resolver::user(&pool, Some(id)).await.unwrap();
 
-        assert_eq!(result, Ok(None));
+        assert_eq!(result, None);
     }
 
     #[tokio::test]
@@ -118,7 +118,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_integration() {
-        let user = factory::create_user();
+        let user = factory::insert_user();
         let config = config::get_config();
         let pool = repo::connect_database(&config.database_url);
         let schema = schema::create_schema(pool);
@@ -164,12 +164,36 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_user_success() {
-        assert_eq!(true, true)
+    async fn test_create_user() {
+        let config = config::get_config();
+        let pool = repo::connect_database(&config.database_url);
+        let input = UserInput {
+            first_name: Some("Jane".to_string()),
+            last_name: Some("Doe".to_string()),
+            email_address: Some("jane.doe@example.com".to_string()),
+        };
+        let result = user_resolver::create_user(&pool, Some(input))
+            .await
+            .unwrap();
+
+        if let Some(user) = result {
+            assert_eq!(user.first_name, Some("Jane".to_string()));
+            assert_eq!(user.last_name, Some("Doe".to_string()));
+            assert_eq!(user.email_address, Some("jane.doe@example.com".to_string()));
+            assert_eq!(user.created_at, user.updated_at);
+            assert_eq!(user.deleted_at, None);
+        } else {
+            assert_ne!(result, None);
+        }
     }
 
     #[tokio::test]
     async fn test_create_user_missing_input() {
+        assert_eq!(true, true)
+    }
+
+    #[tokio::test]
+    async fn test_create_user_invalid_input() {
         assert_eq!(true, true)
     }
 }
