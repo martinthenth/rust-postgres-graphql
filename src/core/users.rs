@@ -64,23 +64,15 @@ pub fn create_user(conn: &mut PgConnection, attrs: CreateUserAttrs) -> Result<Op
 mod tests {
     use super::*;
     use crate::config;
+    use crate::test::factory;
     use diesel::Connection;
     use diesel::PgConnection;
 
     #[test]
     fn test_fetch_user_success() {
+        let user = factory::create_user();
         let config = config::get_config();
         let mut conn = PgConnection::establish(&config.database_url).unwrap();
-        let user = create_user(
-            &mut conn,
-            CreateUserAttrs {
-                first_name: String::from("Jane"),
-                last_name: String::from("Doe"),
-                email_address: String::from("jane@doe.com"),
-            },
-        )
-        .unwrap()
-        .unwrap();
         let result = fetch_user(&mut conn, user.id).unwrap();
 
         assert_eq!(result, Some(user))

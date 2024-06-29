@@ -1,5 +1,5 @@
 pub mod error;
-mod models;
+pub mod models;
 pub mod repo;
 mod schema;
 pub mod users;

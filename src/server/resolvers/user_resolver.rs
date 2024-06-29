@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
-    // TODO: Properly handle errors with `Result`
     let conn = pool.get().await.unwrap();
     // TODO: Add `UUID` scalar type
     // TODO: Clearly a hacked together solution
@@ -43,9 +42,7 @@ pub async fn user(pool: &Pool, id: Option<ID>) -> Result<Option<User>, Error> {
 
 pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
-    // TODO: Properly handle errors with `Result`
     let conn = pool.get().await.unwrap();
-    // TODO: Get params from graphql
     let attrs = input.unwrap();
     let attrs = users::CreateUserAttrs {
         first_name: attrs.first_name.unwrap(),
@@ -81,36 +78,19 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
 mod tests {
     use super::*;
     use crate::config;
-    use crate::core::users;
-    use crate::{config::get_config, core::repo::connect_database, server::schema::create_schema};
-    use async_graphql::{Request, Variables};
-    use diesel::Connection;
-    use diesel::PgConnection;
-    use serde_json::json;
+    use crate::core::repo;
+    use crate::server::resolvers::user_resolver;
+    use crate::server::schema;
+    use crate::test::factory;
 
     // TODO: Add a shared test setup, maybe with a database transaction.
 
     #[tokio::test]
     async fn test_user_success() {
+        let user = factory::create_user();
         let config = config::get_config();
-        let mut conn = PgConnection::establish(&config.database_url).unwrap();
-        let user = users::create_user(
-            &mut conn,
-            users::CreateUserAttrs {
-                first_name: String::from("Jane"),
-                last_name: String::from("Doe"),
-                email_address: String::from("jane@doe.com"),
-            },
-        )
-        .unwrap()
-        .unwrap();
-        let config = get_config();
-        let pool = connect_database(&config.database_url);
-        let result = crate::server::resolvers::user_resolver::user(
-            &pool,
-            Some(async_graphql::ID::from(user.id)),
-        )
-        .await;
+        let pool = repo::connect_database(&config.database_url);
+        let result = user_resolver::user(&pool, Some(async_graphql::ID::from(user.id))).await;
 
         assert_eq!(
             result,
@@ -130,13 +110,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_not_found() {
-        let config = get_config();
-        let pool = connect_database(&config.database_url);
-        let result = crate::server::resolvers::user_resolver::user(
-            &pool,
-            Some(async_graphql::ID::from(Uuid::now_v7())),
-        )
-        .await;
+        let config = config::get_config();
+        let pool = repo::connect_database(&config.database_url);
+        let result =
+            user_resolver::user(&pool, Some(async_graphql::ID::from(Uuid::now_v7()))).await;
 
         assert_eq!(result, Ok(None));
     }
@@ -148,21 +125,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_integration() {
+        let user = factory::create_user();
         let config = config::get_config();
-        let mut conn = PgConnection::establish(&config.database_url).unwrap();
-        let user = users::create_user(
-            &mut conn,
-            users::CreateUserAttrs {
-                first_name: String::from("Jane"),
-                last_name: String::from("Doe"),
-                email_address: String::from("jane@doe.com"),
-            },
-        )
-        .unwrap()
-        .unwrap();
-        let config = get_config();
-        let pool = connect_database(&config.database_url);
-        let schema = create_schema(pool);
+        let pool = repo::connect_database(&config.database_url);
+        let schema = schema::create_schema(pool);
         let query = "
         query User($id: ID) {
             user(id: $id) {
@@ -177,14 +143,17 @@ mod tests {
             }
         }
         ";
-        let variables = json!({"id": user.id.to_string()});
+        let variables = serde_json::json!({"id": user.id.to_string()});
         let response = schema
-            .execute(Request::new(query).variables(Variables::from_json(variables)))
+            .execute(
+                async_graphql::Request::new(query)
+                    .variables(async_graphql::Variables::from_json(variables)),
+            )
             .await;
 
         assert_eq!(
             response.data.into_json().unwrap(),
-            json!({
+            serde_json::json!({
                 "user": {
                     "id": user.id.to_string(),
                     "firstName": user.first_name.to_string(),
