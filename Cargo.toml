@@ -1,5 +1,5 @@
 [package]
-name = "terra"
+name = "rpg"
 version = "0.1.0"
 edition = "2021"
 
@@ -16,3 +16,4 @@ tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.8.0", features = ["v4", "v7"] }
+validator = { version = "0.18.1", features = ["derive"] }

@@ -6,8 +6,17 @@ use async_graphql::Error;
 use deadpool_diesel::postgres::Pool;
 use uuid::Uuid;
 
+// struct UserParams {
+//     id: Uuid,
+// }
+
+// struct CreateUserParams {
+//     input: UserInput,
+// }
+
 pub async fn user(pool: &Pool, id: Option<Uuid>) -> Result<Option<User>, Error> {
     // TODO: Validate input parameters
+    // TODO: Set directives for input objects
     let conn = pool.get().await.unwrap();
     let result = conn
         .interact(move |conn| users::get_user(conn, id.unwrap()))
@@ -73,6 +82,7 @@ mod tests {
     use super::*;
     use crate::config;
     use crate::core::repo;
+    use crate::server::resolvers::errors::unprocessable_content;
     use crate::server::resolvers::user_resolver;
     use crate::server::schema;
     use crate::test::factory;
@@ -113,7 +123,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_missing_id() {
-        assert_eq!(true, true);
+        // TODO: Add a function `connect_database` to `test` module and return test connection
+        let config = config::get_config();
+        let pool = repo::connect_database(&config.database_url);
+        let result = user_resolver::user(&pool, None).await.unwrap_err();
+
+        // TODO: Check the error object
+        assert_eq!(result, unprocessable_content("reason".to_string()))
     }
 
     #[tokio::test]
@@ -189,11 +205,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_user_missing_input() {
-        assert_eq!(true, true)
+        let config = config::get_config();
+        let pool = repo::connect_database(&config.database_url);
+        let result = user_resolver::create_user(&pool, None).await.unwrap_err();
+
+        // TODO: Check the error object
+        // TODO: Maybe an error enum makes sense?
+        assert_eq!(result, unprocessable_content("reason".to_string()))
     }
 
     #[tokio::test]
     async fn test_create_user_invalid_input() {
-        assert_eq!(true, true)
+        let config = config::get_config();
+        let pool = repo::connect_database(&config.database_url);
+        let input = UserInput {
+            first_name: Some("J".to_string()),
+            last_name: Some("D".to_string()),
+            email_address: Some("jane.doe@@example.com".to_string()),
+        };
+        let result = user_resolver::create_user(&pool, Some(input))
+            .await
+            .unwrap_err();
+
+        // TODO: Check the error object
+        assert_eq!(result, unprocessable_content("reason".to_string()))
     }
 }

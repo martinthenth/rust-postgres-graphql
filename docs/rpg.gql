@@ -1,0 +1,70 @@
+
+"""
+Implement the DateTime<Utc> scalar
+
+The input/output is a string in RFC3339 format.
+"""
+scalar DateTime
+
+
+
+
+"""
+The parent mutation object, merged from child modules.
+"""
+type Mutation {
+	"""
+	Create a user.
+	"""
+	createUser(input: UserInput): User
+}
+
+"""
+The parent query object, merged from child modules.
+"""
+type Query {
+	"""
+	Get a user.
+	"""
+	user(id: UUID): User
+}
+
+
+"""
+A UUID is a unique 128-bit number, stored as 16 octets. UUIDs are parsed as
+Strings within GraphQL. UUIDs are used to assign unique identifiers to
+entities without requiring a central allocating authority.
+
+# References
+
+* [Wikipedia: Universally Unique Identifier](http://en.wikipedia.org/wiki/Universally_unique_identifier)
+* [RFC4122: A Universally Unique IDentifier (UUID) URN Namespace](http://tools.ietf.org/html/rfc4122)
+"""
+scalar UUID
+
+type User {
+	id: UUID
+	firstName: String
+	lastName: String
+	emailAddress: String
+	createdAt: DateTime @authorize(role: "ADMIN|SELF")
+	updatedAt: DateTime @authorize(role: "ADMIN|SELF")
+	deletedAt: DateTime @authorize(role: "ADMIN|SELF")
+	fullName: String
+}
+
+input UserInput {
+	firstName: String @validate(required: true)
+	lastName: String @validate(required: true)
+	emailAddress: String @validate(required: true)
+}
+
+directive @authorize(role: String!) on FIELD_DEFINITION
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @specifiedBy(url: String!) on SCALAR
+directive @validate(required: Boolean!) on INPUT_FIELD_DEFINITION
+schema {
+	query: Query
+	mutation: Mutation
+}
