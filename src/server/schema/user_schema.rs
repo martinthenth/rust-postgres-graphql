@@ -6,10 +6,18 @@ use async_graphql::InputObject;
 use async_graphql::Object;
 use async_graphql::Result;
 use async_graphql::SimpleObject;
+use async_graphql::TypeDirective;
 use chrono::DateTime;
 use chrono::Utc;
 use deadpool_diesel::postgres::Pool;
 use uuid::Uuid;
+
+// TODO: `role` should be an enum
+#[TypeDirective(location = "FieldDefinition")]
+fn authorize(role: String) {}
+
+#[TypeDirective(location = "InputFieldDefinition")]
+fn validate(required: bool) {}
 
 #[derive(Debug, PartialEq, SimpleObject)]
 #[graphql(complex)]
@@ -18,8 +26,11 @@ pub struct User {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub email_address: Option<String>,
+    #[graphql(directive = authorize::apply("ADMIN|SELF".to_string()))]
     pub created_at: Option<DateTime<Utc>>,
+    #[graphql(directive = authorize::apply("ADMIN|SELF".to_string()))]
     pub updated_at: Option<DateTime<Utc>>,
+    #[graphql(directive = authorize::apply("ADMIN|SELF".to_string()))]
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -36,8 +47,11 @@ impl User {
 
 #[derive(InputObject)]
 pub struct UserInput {
+    #[graphql(directive = validate::apply(true))]
     pub first_name: Option<String>,
+    #[graphql(directive = validate::apply(true))]
     pub last_name: Option<String>,
+    #[graphql(directive = validate::apply(true))]
     pub email_address: Option<String>,
 }
 
