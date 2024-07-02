@@ -1,0 +1,8 @@
+version: 3
+tasks:
+  db.dump:
+    cmds:
+      - pg_dump -U postgres -p 5432 -h localhost main_dev > docs/database.sql --schema-only --no-owner --no-comments --no-privileges
+    env:
+      PGPASSWORD: postgres
+    silent: true

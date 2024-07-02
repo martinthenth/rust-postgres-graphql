@@ -1,13 +1,13 @@
 [package]
-name = "terra"
+name = "rpg"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql = "7.0.6"
+async-graphql = { version = "7.0.6", features = ["chrono", "uuid"] }
 async-graphql-axum = "7.0.6"
 axum = "0.7.5"
-chrono = "0.4.38"
+chrono = { version = "0.4.38", features = ["alloc"] }
 deadpool-diesel = { version = "0.6.1", features = ["postgres"] }
 diesel = { version = "2.2.1", features = ["chrono", "postgres", "uuid"] }
 serde = "1.0.203"
@@ -16,3 +16,4 @@ tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.8.0", features = ["v4", "v7"] }
+validator = { version = "0.18.1", features = ["derive"] }

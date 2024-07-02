@@ -1,6 +1,6 @@
 [env]
 # Configure the tracing
-RUST_LOG = "terra=debug,tower_http=debug,axum::rejection=trace"
+RUST_LOG = "rpg=debug,tower_http=debug,axum::rejection=trace"
 # Configure the database
 DATABASE_URL = "postgres://postgres:postgres@localhost:5432/main_dev?sslmode=disable"
 # Configure the endpoint

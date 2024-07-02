@@ -9,6 +9,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Load the configuration from the environment variables.
     fn load_from_env() -> Result<Config, Error> {
         Ok(Config {
             database_url: env::var("DATABASE_URL").unwrap(),
