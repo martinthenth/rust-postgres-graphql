@@ -25,7 +25,7 @@ pub async fn start_server(endpoint_url: &String, database: Pool) {
     let schema = create_schema(database);
 
     // TODO: Add tool to export GQL and SQL
-    std::fs::write("docs/rpg.gql", &schema.sdl()).unwrap();
+    std::fs::write("docs/server.gql", &schema.sdl()).unwrap();
 
     let server = Router::new()
         .route("/", get(graphql_html))
