@@ -1,3 +1,4 @@
+pub use crate::server::schema::build_schema;
 use crate::server::schema::create_schema;
 use crate::server::schema::GraphSchema;
 use async_graphql::http::GraphiQLSource;
@@ -23,10 +24,6 @@ mod schema;
 /// Start the web server
 pub async fn start_server(endpoint_url: &String, database: Pool) {
     let schema = create_schema(database);
-
-    // TODO: Add tool to export GQL and SQL
-    std::fs::write("docs/server.gql", &schema.sdl()).unwrap();
-
     let server = Router::new()
         .route("/", get(graphql_html))
         .route("/graph", post(graphql_json))

@@ -8,6 +8,7 @@ async-graphql = { version = "7.0.6", features = ["chrono", "uuid"] }
 async-graphql-axum = "7.0.6"
 axum = "0.7.5"
 chrono = { version = "0.4.38", features = ["alloc"] }
+clap = { version = "4.5.8", features = ["derive"] }
 deadpool-diesel = { version = "0.6.1", features = ["postgres"] }
 diesel = { version = "2.2.1", features = ["chrono", "postgres", "uuid"] }
 serde = "1.0.203"
