@@ -1,5 +1,5 @@
 use crate::core::users;
-use crate::server::resolvers::errors::internal_server;
+use crate::server::resolvers::errors::GqlError;
 use crate::server::schema::user_schema::User;
 use crate::server::schema::user_schema::UserInput;
 use async_graphql::Error;
@@ -26,8 +26,8 @@ pub async fn user(pool: &Pool, id: Option<Uuid>) -> Result<Option<User>, Error> 
     // TODO: Write an abstraction (any db error returns internal server error)
     let option = match result {
         Ok(Ok(option)) => option,
-        Ok(Err(_)) => return Err(internal_server()),
-        Err(_) => return Err(internal_server()),
+        Ok(Err(_)) => return Err(GqlError::InternalServer.new()),
+        Err(_) => return Err(GqlError::InternalServer.new()),
     };
 
     match option {
@@ -59,8 +59,8 @@ pub async fn create_user(pool: &Pool, input: Option<UserInput>) -> Result<Option
     // TODO: Write an abstraction (any db error returns internal server error)
     let option = match result {
         Ok(Ok(option)) => option,
-        Ok(Err(_)) => return Err(internal_server()),
-        Err(_) => return Err(internal_server()),
+        Ok(Err(_)) => return Err(GqlError::InternalServer.new()),
+        Err(_) => return Err(GqlError::InternalServer.new()),
     };
 
     match option {
@@ -82,7 +82,7 @@ mod tests {
     use super::*;
     use crate::config;
     use crate::core::repo;
-    use crate::server::resolvers::errors::unprocessable_content;
+    use crate::server::resolvers::errors::GqlError;
     use crate::server::resolvers::user_resolver;
     use crate::server::schema;
     use crate::test::factory;
@@ -129,7 +129,10 @@ mod tests {
         let result = user_resolver::user(&pool, None).await.unwrap_err();
 
         // TODO: Check the error object
-        assert_eq!(result, unprocessable_content("reason".to_string()))
+        assert_eq!(
+            result,
+            GqlError::UnprocessableContent("reason".to_string()).new()
+        )
     }
 
     #[tokio::test]
@@ -210,8 +213,10 @@ mod tests {
         let result = user_resolver::create_user(&pool, None).await.unwrap_err();
 
         // TODO: Check the error object
-        // TODO: Maybe an error enum makes sense?
-        assert_eq!(result, unprocessable_content("reason".to_string()))
+        assert_eq!(
+            result,
+            GqlError::UnprocessableContent("reason".to_string()).new()
+        )
     }
 
     #[tokio::test]
@@ -228,6 +233,9 @@ mod tests {
             .unwrap_err();
 
         // TODO: Check the error object
-        assert_eq!(result, unprocessable_content("reason".to_string()))
+        assert_eq!(
+            result,
+            GqlError::UnprocessableContent("reason".to_string()).new()
+        )
     }
 }
