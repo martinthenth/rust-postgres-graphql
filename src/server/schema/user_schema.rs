@@ -2,6 +2,7 @@ use crate::server::resolvers::user_resolver::create_user;
 use crate::server::resolvers::user_resolver::user;
 use async_graphql::ComplexObject;
 use async_graphql::Context;
+use async_graphql::Enum;
 use async_graphql::InputObject;
 use async_graphql::Object;
 use async_graphql::Result;
@@ -12,9 +13,17 @@ use chrono::Utc;
 use deadpool_diesel::postgres::Pool;
 use uuid::Uuid;
 
-// TODO: `role` should be an enum
+/// The system role.
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum Role {
+    Admin,
+    User,
+    #[graphql(name = "SELF")]
+    Me,
+}
+
 #[TypeDirective(location = "FieldDefinition")]
-fn authorize(role: String) {}
+fn authorize(role: Vec<Role>) {}
 
 #[TypeDirective(location = "InputFieldDefinition")]
 fn validate(required: bool) {}
@@ -26,11 +35,11 @@ pub struct User {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub email_address: Option<String>,
-    #[graphql(directive = authorize::apply("ADMIN|SELF".to_string()))]
+    #[graphql(directive = authorize::apply(vec![Role::Admin, Role::Me, Role::User]))]
     pub created_at: Option<DateTime<Utc>>,
-    #[graphql(directive = authorize::apply("ADMIN|SELF".to_string()))]
+    #[graphql(directive = authorize::apply(vec![Role::Admin, Role::Me]))]
     pub updated_at: Option<DateTime<Utc>>,
-    #[graphql(directive = authorize::apply("ADMIN|SELF".to_string()))]
+    #[graphql(directive = authorize::apply(vec![Role::Admin, Role::Me]))]
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
