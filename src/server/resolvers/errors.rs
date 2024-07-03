@@ -1,25 +1,31 @@
+use async_graphql::Error;
 use async_graphql::ErrorExtensions;
-use async_graphql::FieldError;
-use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum GqlError {
-    // #[error("Not found")]
     // NotFound,
-    #[error("Internal server error")]
     InternalServer,
-    #[error("Unprocessable content")]
     UnprocessableContent(String),
 }
 
-impl GqlError {
-    pub fn new(&self) -> FieldError {
+impl std::fmt::Display for GqlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}",)
+    }
+}
+
+impl ErrorExtensions for GqlError {
+    fn extend(&self) -> Error {
         self.extend_with(|err, e| match err {
             GqlError::UnprocessableContent(reason) => {
+                e.set("message", "Unprocessable content");
                 e.set("code", "UNPROCESSABLE_CONTENT");
                 e.set("reason", reason);
             }
-            GqlError::InternalServer => e.set("code", "INTERNAL_SERVER_ERROR"),
+            GqlError::InternalServer => {
+                e.set("message", "Internal server");
+                e.set("code", "INTERNAL_SERVER");
+            }
         })
     }
 }
