@@ -29,6 +29,15 @@ type Query {
 	user(id: UUID): User
 }
 
+"""
+The system role.
+"""
+enum Role {
+	ADMIN
+	USER
+	SELF
+}
+
 
 """
 A UUID is a unique 128-bit number, stored as 16 octets. UUIDs are parsed as
@@ -47,9 +56,9 @@ type User {
 	firstName: String
 	lastName: String
 	emailAddress: String
-	createdAt: DateTime @authorize(role: "ADMIN|SELF")
-	updatedAt: DateTime @authorize(role: "ADMIN|SELF")
-	deletedAt: DateTime @authorize(role: "ADMIN|SELF")
+	createdAt: DateTime @authorize(role: [ADMIN, SELF, USER])
+	updatedAt: DateTime @authorize(role: [ADMIN, SELF])
+	deletedAt: DateTime @authorize(role: [ADMIN, SELF])
 	fullName: String
 }
 
@@ -59,7 +68,7 @@ input UserInput {
 	emailAddress: String @validate(required: true)
 }
 
-directive @authorize(role: String!) on FIELD_DEFINITION
+directive @authorize(role: [Role!]!) on FIELD_DEFINITION
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 directive @specifiedBy(url: String!) on SCALAR

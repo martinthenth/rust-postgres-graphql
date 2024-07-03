@@ -24,3 +24,8 @@ pub fn create_schema(database: Pool) -> GraphSchema {
         .data(database)
         .finish()
 }
+
+/// Build a GraphQL schema.
+pub fn build_schema() -> GraphSchema {
+    Schema::build(Query::default(), Mutation::default(), EmptySubscription).finish()
+}
